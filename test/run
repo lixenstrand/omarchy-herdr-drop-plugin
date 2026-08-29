@@ -17,7 +17,7 @@ omarchy-plugin-validate "$ROOT"
 jq -e '
   .schemaVersion == 1
   and .id == "io.github.lixenstrand.herdr-drop"
-  and .version == "1.5.3"
+  and .version == "1.5.4"
   and (.kinds | sort) == (["bar-widget", "service"] | sort)
   and .entryPoints.barWidget == "BarWidget.qml"
   and .entryPoints.service == "Service.qml"
@@ -46,4 +46,4 @@ if find "$ROOT" -name .git -prune -o -type l -print -quit | grep -q .; then
   exit 1
 fi
 
-printf 'PASS: Herdr Drop plugin v1.5.3 manifest, QML, and status behavior\n'
+printf 'PASS: Herdr Drop plugin v1.5.4 manifest, QML, and status behavior\n'
