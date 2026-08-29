@@ -5,6 +5,8 @@ An Omarchy Shell bar widget for
 Herdr agent status, toggles the persistent drop-down, and draws a connector
 that follows the active Omarchy popup theme.
 
+![Herdr Drop connected to the Omarchy bar](preview.webp)
+
 ## Requirements
 
 - Omarchy Quattro with third-party shell plugin support
