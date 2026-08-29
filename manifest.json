@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.lixenstrand.herdr-drop",
   "name": "Herdr Drop for Omarchy",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "author": "lixenstrand",
   "license": "MIT",
   "description": "Theme-aware bar widget, live agent status, and panel bridge for Herdr Drop.",

@@ -9,24 +9,18 @@ that follows the active Omarchy popup theme.
 
 - Omarchy Quattro with third-party shell plugin support
 - [Herdr](https://herdr.dev/)
-- [Herdr Drop v1.5.1 or newer](https://github.com/lixenstrand/omarchy-herdr-drop/releases)
+- [Herdr Drop v1.5.1 or newer](https://github.com/lixenstrand/omarchy-herdr-drop/releases/tag/v1.5.1)
 - `jq`, `hyprctl`, and `socat`
 - Optional connected-panel behavior: a bar implementing Shibumi host contract
   v1 or newer
 
 ## Install
 
-Install the Herdr Drop base integration first. The base owns the command,
-Hyprland rules, and theme hook:
+Install [Herdr Drop v1.5.1](https://github.com/lixenstrand/omarchy-herdr-drop/releases/tag/v1.5.1)
+first and select its documented community-plugin installation. The base owns
+the command, Hyprland rules, theme hook, and connected-panel visual profile.
 
-```bash
-git clone https://github.com/lixenstrand/omarchy-herdr-drop.git \
-  ~/.local/share/omarchy-herdr-drop
-cd ~/.local/share/omarchy-herdr-drop
-./install.sh --shibumi-style
-```
-
-The style option applies the same connected-panel look as the bundled
+That installation applies the same connected-panel look as the bundled
 integration: 6 px corners, a matched top gap, 1 px themed border, 94% opacity,
 and the top-edge animation. It does not install a second copy of this plugin.
 
