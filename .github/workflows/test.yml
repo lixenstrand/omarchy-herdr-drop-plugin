@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: pacman -Syu --noconfirm git jq qt6-declarative
+      - name: Fetch the Omarchy plugin contract
+        run: git clone --depth 1 --branch quattro https://github.com/basecamp/omarchy.git /tmp/omarchy
+      - name: Validate and test
+        env:
+          OMARCHY_SHELL_ROOT: /tmp/omarchy/shell
+        run: |
+          export PATH="/tmp/omarchy/bin:$PATH"
+          ./test/run

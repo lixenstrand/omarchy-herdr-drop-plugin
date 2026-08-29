@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+command -v jq >/dev/null 2>&1 || {
+  echo "jq is required" >&2
+  exit 1
+}
+command -v omarchy-plugin-validate >/dev/null 2>&1 || {
+  echo "omarchy-plugin-validate is required" >&2
+  exit 1
+}
+
+omarchy-plugin-validate "$ROOT"
+jq -e '
+  .schemaVersion == 1
+  and .id == "io.github.lixenstrand.herdr-drop"
+  and .version == "1.5.0"
+  and (.kinds | sort) == (["bar-widget", "service"] | sort)
+  and .entryPoints.barWidget == "BarWidget.qml"
+  and .entryPoints.service == "Service.qml"
+' "$ROOT/manifest.json" >/dev/null
+
+if command -v qmllint >/dev/null 2>&1; then
+  OMARCHY_SHELL_ROOT="${OMARCHY_SHELL_ROOT:-/usr/share/omarchy/shell}"
+  qmllint -I "$OMARCHY_SHELL_ROOT" "$ROOT/BarWidget.qml" >/dev/null 2>&1
+  qmllint -I "$OMARCHY_SHELL_ROOT" "$ROOT/Service.qml" >/dev/null 2>&1
+  qmllint -I "$OMARCHY_SHELL_ROOT" "$ROOT/ThemedConnector.qml" >/dev/null 2>&1
+fi
+
+QML_TEST_RUNNER="$(command -v qmltestrunner || true)"
+if [[ -z $QML_TEST_RUNNER && -x /usr/lib/qt6/bin/qmltestrunner ]]; then
+  QML_TEST_RUNNER=/usr/lib/qt6/bin/qmltestrunner
+fi
+[[ -n $QML_TEST_RUNNER ]] || {
+  echo "qmltestrunner is required" >&2
+  exit 1
+}
+QT_QPA_PLATFORM=offscreen "$QML_TEST_RUNNER" \
+  -input "$ROOT/test/qml" >/dev/null
+
+if find "$ROOT" -name .git -prune -o -type l -print -quit | grep -q .; then
+  echo "plugin repository contains a symlink" >&2
+  exit 1
+fi
+
+printf 'PASS: Herdr Drop plugin v1.5.0 manifest, QML, and status behavior\n'

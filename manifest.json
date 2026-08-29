@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.lixenstrand.herdr-drop",
+  "name": "Herdr Drop for Omarchy",
+  "version": "1.5.0",
+  "author": "lixenstrand",
+  "license": "MIT",
+  "description": "Theme-aware bar widget, live agent status, and panel bridge for Herdr Drop.",
+  "kinds": ["bar-widget", "service"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "service": "Service.qml"
+  },
+  "barWidget": {
+    "displayName": "Herdr Drop",
+    "description": "Toggle Herdr Drop and show live Herdr agent status",
+    "category": "System",
+    "defaultSection": "center",
+    "allowMultiple": false
+  }
+}
