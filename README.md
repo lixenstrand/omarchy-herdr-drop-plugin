@@ -5,7 +5,7 @@ An Omarchy Shell bar widget for
 Herdr agent status, toggles the persistent drop-down, and draws a connector
 that follows the active Omarchy popup theme.
 
-[![Herdr Drop opens from the Omarchy bar and closes when another UI appears](https://raw.githubusercontent.com/lixenstrand/omarchy-herdr-drop/main/assets/herdr-drop-demo.gif)](https://github.com/lixenstrand/omarchy-herdr-drop)
+[![Herdr Drop on a full Omarchy desktop](https://raw.githubusercontent.com/lixenstrand/omarchy-herdr-drop/main/assets/herdr-drop-demo-laptop.gif)](https://github.com/lixenstrand/omarchy-herdr-drop)
 
 ## Requirements
 
