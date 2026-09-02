@@ -51,6 +51,15 @@ Item {
   property int herdrEventCount: 0
   property var herdrStatus: HerdrStatus.loading()
 
+  readonly property int oneShotTimeoutSeconds: 5
+  readonly property int oneShotKillGraceSeconds: 2
+  readonly property int oneShotHardDeadlineMs:
+    (oneShotTimeoutSeconds + oneShotKillGraceSeconds + 3) * 1000
+  readonly property int monitorOutputCapBytes: 262144
+  readonly property int processOutputCapBytes: 4194304
+  readonly property int eventLineCapBytes: 262144
+  readonly property int eventIdleTimeoutSeconds: 90
+
   readonly property var activeScreen: {
     const screens = Quickshell.screens || []
     for (let index = 0; index < screens.length; index++) {
@@ -114,6 +123,7 @@ Item {
       herdrQueryPending = true
       return
     }
+    herdrQueryDeadline.restart()
     herdrQuery.running = true
   }
 
@@ -295,6 +305,7 @@ Item {
       clientQueryPending = true
       return
     }
+    clientQueryDeadline.restart()
     clientQuery.running = true
   }
 
@@ -364,6 +375,8 @@ Item {
 
   Component.onDestruction: {
     herdrEvents.running = false
+    clientQuery.running = false
+    herdrQuery.running = false
     if (root.bar && typeof root.bar.clearConnectedPanel === "function")
       root.bar.clearConnectedPanel(root, activeScreenName)
     if (root.bar && typeof root.bar.releasePopout === "function")
@@ -426,10 +439,21 @@ Item {
 
   Process {
     id: herdrEvents
+    // Runs the socket writer/reader in their own process group so TERM/EXIT
+    // reliably reaches every stage of the pipeline, not just the wrapper
+    // shell. socat's -T bounds how long a silent connection stays open and
+    // connect-timeout bounds the initial dial; fold caps how many bytes can
+    // accumulate before SplitParser sees a line delimiter, so a peer that
+    // never sends '\n' cannot grow an unbounded buffer.
     command: [
       "bash", "-c",
-      "printf '%s\\n' \"$2\" | socat 'STDIO,ignoreeof' \"UNIX-CONNECT:$1\" & "
-        + "child=$!; trap 'kill \"$child\" 2>/dev/null; wait \"$child\" 2>/dev/null' TERM INT EXIT; wait \"$child\"",
+      "set -m; ( printf '%s\\n' \"$2\" "
+        + "| socat -T " + root.eventIdleTimeoutSeconds
+        + " 'STDIO,ignoreeof' \"UNIX-CONNECT:$1,connect-timeout=5\" "
+        + "| fold -w " + root.eventLineCapBytes + " -b ) & "
+        + "pgid=$!; "
+        + "trap 'kill -TERM -- -$pgid 2>/dev/null; wait \"$pgid\" 2>/dev/null' TERM INT EXIT; "
+        + "wait \"$pgid\"",
       "herdr-drop-events", root.herdrSocketPath, root.herdrEventRequest
     ]
     stdout: SplitParser {
@@ -443,10 +467,16 @@ Item {
 
   Process {
     id: clientQuery
+    // `timeout` bounds worst-case execution and `head -c` bounds how much
+    // of each stream jq/StdioCollector will ever buffer, so a wedged
+    // Hyprland IPC socket can neither hang this process nor exhaust memory.
     command: [
-      "bash", "-c",
+      "timeout", "-k", root.oneShotKillGraceSeconds + "s",
+      root.oneShotTimeoutSeconds + "s", "bash", "-c",
       "jq -s '{monitors:.[0],clients:.[1]}' "
-        + "<(hyprctl -j monitors) <(hyprctl -j clients)"
+        + "<(hyprctl -j monitors | head -c " + root.monitorOutputCapBytes + ") "
+        + "<(hyprctl -j clients | head -c " + root.processOutputCapBytes + ") "
+        + "| head -c " + root.processOutputCapBytes
     ]
     stdout: StdioCollector { id: clientOutput }
     onExited: function(exitCode, _exitStatus) {
@@ -470,9 +500,23 @@ Item {
     }
   }
 
+  Timer {
+    id: clientQueryDeadline
+    interval: root.oneShotHardDeadlineMs
+    // Backstop independent of the `timeout` binary: force-kill a query that
+    // is still running past its execution deadline.
+    onTriggered: if (clientQuery.running) clientQuery.signal(9)
+  }
+
   Process {
     id: herdrQuery
-    command: ["herdr", "api", "snapshot"]
+    // Same execution-deadline and byte-cap treatment as clientQuery, for a
+    // stuck or oversized `herdr api snapshot` response.
+    command: [
+      "timeout", "-k", root.oneShotKillGraceSeconds + "s",
+      root.oneShotTimeoutSeconds + "s", "bash", "-c",
+      "herdr api snapshot | head -c " + root.processOutputCapBytes
+    ]
     stdout: StdioCollector { id: herdrOutput; waitForEnd: true }
     onExited: function(exitCode, _exitStatus) {
       let applied = false
@@ -488,6 +532,12 @@ Item {
         herdrStatusRetry.restart()
       }
     }
+  }
+
+  Timer {
+    id: herdrQueryDeadline
+    interval: root.oneShotHardDeadlineMs
+    onTriggered: if (herdrQuery.running) herdrQuery.signal(9)
   }
 
   Timer {
